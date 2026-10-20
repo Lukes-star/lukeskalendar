@@ -26,6 +26,10 @@ interface MonthViewProps {
   onMonthSwipe?: (direction: 'prev' | 'next') => void;
 }
 
+function isBlockedDate(date: Date): boolean {
+  return date.getMonth() === 10 && [6, 7, 8, 9, 10].includes(date.getDate());
+}
+
 export function MonthView({ year, month, appointments, notes, onAppointmentClick, onDayClick, onMonthSwipe }: MonthViewProps) {
   const grid = getMonthGrid(year, month);
   const [overflowDay, setOverflowDay] = useState<string | null>(null);
@@ -96,7 +100,8 @@ export function MonthView({ year, month, appointments, notes, onAppointmentClick
         }}
       >
         {grid.map((cell, idx) => {
-          const dayAppts = getAppointmentsForDate(appointments, cell.date);
+          const blocked = isBlockedDate(cell.date);
+          const dayAppts = blocked ? [] : getAppointmentsForDate(appointments, cell.date);
           const today = isToday(cell.date);
           const weekend = isWeekend(cell.date);
           const maxVisible = dayAppts.length > 3 ? 4 : 3;
@@ -113,12 +118,17 @@ export function MonthView({ year, month, appointments, notes, onAppointmentClick
           return (
             <div
               key={idx}
-              onClick={() => onDayClick(cell.date)}
-              className={`group relative flex flex-col cursor-pointer transition-colors duration-100 min-h-[56px] sm:min-h-[84px] lg:min-h-[112px] p-1 sm:p-1.5 lg:p-2 ${
+              onClick={() => {
+                if (blocked) return;
+                onDayClick(cell.date);
+              }}
+              className={`group relative flex flex-col transition-colors duration-100 min-h-[56px] sm:min-h-[84px] lg:min-h-[112px] p-1 sm:p-1.5 lg:p-2 ${
+                blocked ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:brightness-110'
+              } ${
                 !isLastCol ? 'border-r border-border' : ''
               } ${!isLastRow ? 'border-b border-border' : ''} ${
                 dim ? 'opacity-50' : ''
-              } hover:brightness-110`}
+              }`}
               style={
                 holiday
                   ? {
@@ -211,10 +221,10 @@ export function MonthView({ year, month, appointments, notes, onAppointmentClick
                   />
                 ))}
 
-                  {overflow > 0 && (
+                {overflow > 0 && (
                   <button
                     onClick={(e) => { e.stopPropagation(); setOverflowDay(iso); }}
-                      className="flex items-center justify-between text-[9px] sm:text-[10px] font-extrabold text-primary hover:text-primary-hover transition-colors text-left px-1 mt-0.5 rounded-md hover:bg-primary-muted"
+                    className="flex items-center justify-between text-[9px] sm:text-[10px] font-extrabold text-primary hover:text-primary-hover transition-colors text-left px-1 mt-0.5 rounded-md hover:bg-primary-muted"
                   >
                     <span>+{overflow} još termina</span>
                     <span aria-hidden="true">›</span>
